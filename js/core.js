@@ -22,7 +22,7 @@
    code and the generated task data aggressively; a participant running a
    stale mixture of the two is the kind of bug that is invisible until the
    data comes back wrong. */
-const ASSET_VERSION = "2026-09-26b";
+const ASSET_VERSION = "2026-10-05a";
 
 const CFG = {
   /* Where the data goes. DataPipe (pipe.jspsych.org) writes each snapshot
@@ -37,6 +37,13 @@ const CFG = {
 
   CONTACT: "adel.chaouchorozco@cityu.edu.hk",
   COMPLETION_URL: "",
+
+  /* SONA credit granting. Paste the "client-side completion URL" SONA shows
+     in the study's settings (it ends in survey_code=XXXX); the XXXX is
+     replaced with the student's survey code. In SONA, set the study URL to
+     https://adelchaouchorozco.github.io/lexen-study/?sona=%SURVEY_CODE%
+     Empty = SONA students are not sent back for credit. */
+  SONA_CREDIT_URL: "",
   PILOT: false,
 };
 
@@ -44,7 +51,8 @@ const CFG = {
 const params = new URLSearchParams(location.search);
 
 function resolvePid(){
-  const fromURL = params.get("PROLIFIC_PID") || params.get("participant") || params.get("pid");
+  const fromURL = params.get("PROLIFIC_PID") || params.get("sona")
+                || params.get("participant") || params.get("pid");
   if (fromURL) return fromURL;
   const fresh = "anon-" + Math.random().toString(36).slice(2, 9);
   try {
@@ -58,6 +66,7 @@ function resolvePid(){
    and through Prolific later; this keeps the two cohorts separable in the
    data without relying on the shape of an id. */
 const RECRUITMENT = params.get("PROLIFIC_PID") ? "prolific"
+                  : params.get("sona") ? "sona"
                   : (params.get("participant") || params.get("pid")) ? "link-with-id"
                   : "open-link";
 
@@ -251,14 +260,14 @@ const DONE_KEY = "lexen:completed";
 /* Remember, in this browser, that the study was finished. On the open link
    this is the only thing standing between a participant and a second run
    (the server check below needs the mirror), so it is checked for every
-   arrival except Prolific, which blocks repeats itself and where a shared
-   computer could otherwise lock out a different Prolific participant. */
+   arrival except Prolific and SONA, which block repeats themselves and where
+   a shared computer (a lab PC) could otherwise lock out the next person. */
 function markCompletedHere(){
   try { localStorage.setItem(DONE_KEY, JSON.stringify({ pid: SESSION.pid, at: new Date().toISOString() })); }
   catch (e) {}
 }
 function completedHere(){
-  if (SESSION.recruitment === "prolific") return null;
+  if (SESSION.recruitment === "prolific" || SESSION.recruitment === "sona") return null;
   try { return JSON.parse(localStorage.getItem(DONE_KEY) || "null"); }
   catch (e) { return null; }
 }

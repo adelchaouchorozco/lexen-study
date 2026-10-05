@@ -112,8 +112,20 @@ async function step(){
   await finish();
 }
 
+function sonaCreditURL(){
+  const code = encodeURIComponent(SESSION.pid);
+  const u = CFG.SONA_CREDIT_URL;
+  return u.includes("XXXX") ? u.replace("XXXX", code) : u + code;
+}
+
 async function finish(){
-  const toProlific = CFG.COMPLETION_URL && SESSION.recruitment === "prolific";
+  /* Where the participant goes back to, if anywhere: Prolific to register
+     the submission, SONA to grant the student's credit. */
+  const back = SESSION.recruitment === "prolific" && CFG.COMPLETION_URL
+      ? { url: CFG.COMPLETION_URL, why: "register your participation" }
+    : SESSION.recruitment === "sona" && CFG.SONA_CREDIT_URL
+      ? { url: sonaCreditURL(), why: "receive your credit" }
+    : null;
   state.part = (state.part || 0) + 1;
   const all = `${SESSION.pid}__p${String(state.part).padStart(2, "0")}_complete.csv`;
   markCompletedHere();
@@ -127,8 +139,8 @@ async function finish(){
 
   say(`
     <h4>Thank you — the study is complete</h4>
-    <p>Your responses have been recorded. ${toProlific
-      ? "Please press the button below to register your participation."
+    <p>Your responses have been recorded. ${back
+      ? `Please press the button below to ${back.why}.`
       : "You can now close this tab."}</p>
     ${ok ? "" : `<p class="err">We could not send your responses automatically.
        Please download the file below and send it to ${contact}.</p>`}
@@ -136,7 +148,7 @@ async function finish(){
        arm "${state.arm}", ${state.part} snapshot(s) uploaded.
        Set CFG.PILOT = false before running participants.</p>` : ""}
   `, [
-    ...(toProlific ? [{ label: "Finish", onClick: () => location.href = CFG.COMPLETION_URL }] : []),
+    ...(back ? [{ label: "Finish", onClick: () => location.href = back.url }] : []),
     ...(!ok || CFG.PILOT ? [{ label: "Download my data (CSV)", ghost: ok,
         onClick: () => downloadCSV(DATA, `${SESSION.pid}__ALL.csv`) }] : []),
   ]);
@@ -234,7 +246,7 @@ async function boot(){
   if (prior.complete){
     say(`<h4>You have already taken part</h4>
          <p>Our records show this study has already been completed
-            ${SESSION.recruitment === "prolific" ? "with your participant id" : "on this device"},
+            ${SESSION.recruitment === "prolific" || SESSION.recruitment === "sona" ? "with your participant id" : "on this device"},
             so there is nothing more to do — and please do not take it again,
             as repeated data cannot be used.</p>
          <p>If you believe this is a mistake, please contact
