@@ -22,7 +22,7 @@
    code and the generated task data aggressively; a participant running a
    stale mixture of the two is the kind of bug that is invisible until the
    data comes back wrong. */
-const ASSET_VERSION = "2026-10-05a";
+const ASSET_VERSION = "2026-10-09a";
 
 const CFG = {
   /* Where the data goes. DataPipe (pipe.jspsych.org) writes each snapshot
@@ -43,7 +43,7 @@ const CFG = {
      replaced with the student's survey code. In SONA, set the study URL to
      https://adelchaouchorozco.github.io/lexen-study/?sona=%SURVEY_CODE%
      Empty = SONA students are not sent back for credit. */
-  SONA_CREDIT_URL: "",
+  SONA_CREDIT_URL: "https://cityuhk-lt.sona-systems.com/webstudy_credit.aspx?experiment_id=14&credit_token=b2edc59fdba0432c919e757711eea389&survey_code=XXXX",
   PILOT: false,
 };
 
