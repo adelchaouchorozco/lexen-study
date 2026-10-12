@@ -118,6 +118,52 @@ function sonaCreditURL(){
   return u.includes("XXXX") ? u.replace("XXXX", code) : u + code;
 }
 
+/* ------------------------------------------------------------- scores
+   Shown on the last screen only; nothing here is uploaded. LexEn and
+   LexTALE use the LexTALE rule (Lemhoefer & Broersma, 2012): the mean of
+   % correct on real words and % correct on made-up words, test trials
+   only (no practice, no attention checks; a timeout counts as wrong).
+   The OQPT is the number of the 60 questions answered with the keyed
+   option (data/oqpt-key.json). */
+function balancedPercent(rows){
+  const groups = {};
+  rows.forEach(r => { (groups[r.answer] = groups[r.answer] || []).push(+r.correct || 0); });
+  const means = Object.values(groups).map(g => g.reduce((a, b) => a + b, 0) / g.length);
+  return means.length ? Math.round(100 * means.reduce((a, b) => a + b, 0) / means.length) : null;
+}
+
+async function scores(){
+  const out = [];
+  const trials = t => DATA.filter(r => r.task === t && r.display === "trial");
+  const tasks = [...new Set(DATA.map(r => r.task))];
+
+  tasks.filter(t => /^LexEn /.test(t)).forEach(t => {
+    const p = balancedPercent(trials(t));
+    if (p !== null) out.push([t.replace(/\s*-\s*(Left|Right)$/, ""), `${p}%`]);
+  });
+
+  try {
+    const [q, key] = await Promise.all([
+      loadJSON("data/questionnaires/oqpt.json"), loadJSON("data/oqpt-key.json")]);
+    const items = q.pages.flat().filter(i => i.kind === "choice");
+    const answered = new Map(DATA.filter(r => r.task === q.title && r.display === "question")
+                                 .map(r => [r.question, r.response]));
+    if (answered.size){
+      let right = 0;
+      items.forEach((it, n) => {
+        const label = (it.log_label || it.label || "").replace(/<[^>]+>/g, "").trim();
+        if (answered.get(label) === it.options[key.correct[n] - 1]) right++;
+      });
+      out.push(["Oxford Quick Placement Test", `${right} / ${items.length}`]);
+    }
+  } catch (e) { /* no score rather than a wrong one */ }
+
+  const lt = tasks.find(t => /^LexTALE/.test(t));
+  const p = lt ? balancedPercent(trials(lt)) : null;
+  if (p !== null) out.push(["LexTALE", `${p}%`]);
+  return out;
+}
+
 async function finish(){
   /* Where the participant goes back to, if anywhere: Prolific to register
      the submission, SONA to grant the student's credit. */
@@ -137,10 +183,34 @@ async function finish(){
     ? `<a href="mailto:${CFG.CONTACT}">${CFG.CONTACT}</a>`
     : "the researcher who sent you this link";
 
+  const sc = await scores();
+
   say(`
     <h4>Thank you — the study is complete</h4>
-    <p>Your responses have been recorded. ${back
-      ? `Please press the button below to ${back.why}.`
+    <p>In this study you took several English vocabulary tests. In most of
+       them you decided whether a string of letters was a real English word.
+       Some were real words; others were made-up words designed to look like
+       English. We are developing a new vocabulary test, LexEn, and comparing
+       it with two established measures, LexTALE and the Oxford Quick
+       Placement Test. Your answers help us find out how well the new test
+       measures vocabulary knowledge.</p>
+    ${sc.length ? `
+    <h4>Your scores</h4>
+    <table class="tasks scores"><tbody>
+      ${sc.map(([name, v]) => `<tr><td>${name}</td><td class="num">${v}</td></tr>`).join("")}
+    </tbody></table>
+    <p>These scores are for your interest only. They are not a grade and do
+       not affect your credit.</p>` : ""}
+    <p>Your answers are stored only under your anonymous ID:
+       <strong class="mono">${SESSION.pid}</strong>. If you want to withdraw
+       your data, or have any questions, contact Dr Adel Chaouch-Orozco
+       (<a href="mailto:adel.chaouchorozco@cityu.edu.hk">adel.chaouchorozco@cityu.edu.hk</a>)
+       or Dr Eloi Puig-Mayenco
+       (<a href="mailto:e.puig-mayenco@kcl.ac.uk">e.puig-mayenco@kcl.ac.uk</a>),
+       quoting this ID.</p>
+    <p>Please don't discuss the tests with other students who may still take part.</p>
+    <p>${back
+      ? `Press <strong>Finish</strong> to ${back.why}.`
       : "You can now close this tab."}</p>
     ${ok ? "" : `<p class="err">We could not send your responses automatically.
        Please download the file below and send it to ${contact}.</p>`}
