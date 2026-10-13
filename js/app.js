@@ -123,7 +123,7 @@ function sonaCreditURL(){
    LexTALE use the LexTALE rule (Lemhoefer & Broersma, 2012): the mean of
    % correct on real words and % correct on made-up words, test trials
    only (no practice, no attention checks; a timeout counts as wrong).
-   The OQPT is the number of the 60 questions answered with the keyed
+   The proficiency test (OQPT; never named on screen) is the number of the 60 questions answered with the keyed
    option (data/oqpt-key.json). */
 function balancedPercent(rows){
   const groups = {};
@@ -154,7 +154,7 @@ async function scores(){
         const label = (it.log_label || it.label || "").replace(/<[^>]+>/g, "").trim();
         if (answered.get(label) === it.options[key.correct[n] - 1]) right++;
       });
-      out.push(["Oxford Quick Placement Test", `${right} / ${items.length}`]);
+      out.push(["English proficiency test", `${right} / ${items.length}`]);
     }
   } catch (e) { /* no score rather than a wrong one */ }
 
@@ -191,8 +191,8 @@ async function finish(){
        them you decided whether a string of letters was a real English word.
        Some were real words; others were made-up words designed to look like
        English. We are developing a new vocabulary test, LexEn, and comparing
-       it with two established measures, LexTALE and the Oxford Quick
-       Placement Test. Your answers help us find out how well the new test
+       it with an established vocabulary test, LexTALE, and with an English
+       proficiency test. Your answers help us find out how well the new test
        measures vocabulary knowledge.</p>
     ${sc.length ? `
     <h4>Your scores</h4>
