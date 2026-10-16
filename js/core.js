@@ -22,7 +22,7 @@
    code and the generated task data aggressively; a participant running a
    stale mixture of the two is the kind of bug that is invisible until the
    data comes back wrong. */
-const ASSET_VERSION = "2026-10-13a";
+const ASSET_VERSION = "2026-10-16a";
 
 const CFG = {
   /* Where the data goes. DataPipe (pipe.jspsych.org) writes each snapshot
@@ -284,6 +284,27 @@ async function alreadyCompleted(){
     return { known: true, complete: !!j.complete, parts: j.parts || 0 };
   } catch (e) { return { known: false, complete: false }; }
 }
+
+/* A small separate file for things that would otherwise leave no trace:
+   a visit turned away on a phone, or a script error. Named so merge_data.py
+   (which reads <participant>__pNN.csv) never mixes it into the dataset. */
+let DIAG_SENT = 0;
+function diagnostic(kind, detail){
+  if (params.get("task") !== null || DIAG_SENT >= 3) return;
+  DIAG_SENT++;
+  const row = {
+    participant: SESSION.pid, recruitment: SESSION.recruitment,
+    study: SESSION.study, session: SESSION.session, started: SESSION.started,
+    viewport: viewport(), screen_size: screenSize(),
+    kind, detail: String(detail).slice(0, 500), user_agent: SESSION.ua,
+    url_path: location.pathname, at: new Date().toISOString(),
+  };
+  upload(`${SESSION.pid}__${kind}-${Date.now()}.csv`, [row]).catch(() => {});
+}
+window.addEventListener("error", e =>
+  diagnostic("error", `${e.message} @ ${(e.filename || "").split("/").pop()}:${e.lineno}:${e.colno}`));
+window.addEventListener("unhandledrejection", e =>
+  diagnostic("error", `unhandled: ${e.reason && (e.reason.stack || e.reason.message) || e.reason}`));
 
 async function upload(filename, rows){
   const csv = toCSV(rows);

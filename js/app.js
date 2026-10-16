@@ -78,7 +78,10 @@ async function runNode(node){
 /* Snapshot after every task, so an abandoned session still leaves the work
    the participant actually did. The questionnaires either side ride along
    in the next snapshot rather than each costing a file of their own. */
-function isCheckpoint(node){ return node.kind === "task"; }
+/* Every node is a save point, so a participant who stops early (or hits a
+   problem) still leaves a record of how far they got. Until 16 Oct 2026
+   only tasks were, and nothing was saved before the end of the first task. */
+function isCheckpoint(node){ return node.kind !== "finish"; }
 
 async function finishNode(node){
   save(state);
@@ -298,6 +301,7 @@ async function previewTask(slug){
 
 async function boot(){
   if (!keyboardLikely()){
+    diagnostic("blocked-device", "phone or tablet: no fine pointer and no hover");
     say(`<h4>Please use a computer</h4>
          <p>This study is answered with keys on a keyboard, so it cannot be taken
             on a phone or tablet. Nothing has started yet — please open this same
