@@ -22,7 +22,7 @@
    code and the generated task data aggressively; a participant running a
    stale mixture of the two is the kind of bug that is invisible until the
    data comes back wrong. */
-const ASSET_VERSION = "2026-10-16a";
+const ASSET_VERSION = "2026-10-28a";
 
 const CFG = {
   /* Where the data goes. DataPipe (pipe.jspsych.org) writes each snapshot
@@ -73,6 +73,9 @@ const RECRUITMENT = params.get("PROLIFIC_PID") ? "prolific"
 const SESSION = {
   pid: resolvePid(),
   recruitment: RECRUITMENT,
+  /* Where an open-link participant found the study: ?src=reddit etc., one
+     tag per forum or site the link was posted on. Free text, kept short. */
+  source: (params.get("src") || "").replace(/[^\w.-]/g, "").slice(0, 40),
   study: params.get("STUDY_ID") || "",
   session: params.get("SESSION_ID") || "",
   started: new Date().toISOString(),
@@ -172,6 +175,7 @@ function log(row){
   const full = Object.assign({
     participant: SESSION.pid,
     recruitment: SESSION.recruitment,
+    source: SESSION.source,
     study: SESSION.study,
     session: SESSION.session,
     started: SESSION.started,
@@ -293,7 +297,7 @@ function diagnostic(kind, detail){
   if (params.get("task") !== null || DIAG_SENT >= 3) return;
   DIAG_SENT++;
   const row = {
-    participant: SESSION.pid, recruitment: SESSION.recruitment,
+    participant: SESSION.pid, recruitment: SESSION.recruitment, source: SESSION.source,
     study: SESSION.study, session: SESSION.session, started: SESSION.started,
     viewport: viewport(), screen_size: screenSize(),
     kind, detail: String(detail).slice(0, 500), user_agent: SESSION.ua,
